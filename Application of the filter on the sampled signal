@@ -1,0 +1,64 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import butter, lfilter
+
+# Parameters for the signal
+sampling_frequency = 8000  # Hz (sampling rate)
+duration = 0.5  # seconds (duration of the signal)
+t = np.linspace(0, duration, int(sampling_frequency * duration), endpoint=False)
+
+# Simulated periodic signal (matching visual characteristics)
+# Let's create a train of impulses to simulate the uploaded signal
+signal = np.zeros_like(t)
+impulse_indices = np.arange(0, len(t), step=200)  # Impulse every 200 samples
+signal[impulse_indices] = 1  # Set impulses to amplitude 1
+
+# Rectify the signal (retain only positive samples)
+rectified_signal = np.maximum(signal, 0)
+
+# Define the low-pass filter function
+def low_pass_filter(signal, cutoff_frequency, sampling_rate):
+    nyquist = sampling_rate / 2
+    normal_cutoff = cutoff_frequency / nyquist
+    b, a = butter(4, normal_cutoff, btype='low', analog=False)
+    filtered_signal = lfilter(b, a, signal)
+    return filtered_signal
+
+# Apply low-pass filtering
+cutoff_frequency = 400  # Hz
+filtered_signal = low_pass_filter(rectified_signal, cutoff_frequency, sampling_frequency)
+
+# Compute FFT for the original and filtered signals
+fft_rectified = np.fft.fft(rectified_signal)
+fft_filtered = np.fft.fft(filtered_signal)
+frequencies_fft = np.fft.fftfreq(len(fft_rectified), 1 / sampling_frequency)
+
+# Plot the results
+plt.figure(figsize=(12, 8))
+
+# Original rectified signal in the time domain
+plt.subplot(3, 1, 1)
+plt.plot(t, rectified_signal, label="Rectified Signal", color='magenta')
+plt.title("Rectified Signal (Time Domain)")
+plt.xlabel("Time (s)")
+plt.ylabel("Amplitude")
+plt.legend()
+
+# Frequency domain (rectified signal)
+plt.subplot(3, 1, 2)
+plt.stem(frequencies_fft[:len(frequencies_fft)//2], np.abs(fft_rectified[:len(fft_rectified)//2]), basefmt=" ", use_line_collection=True, label="FFT of Rectified Signal")
+plt.title("Frequency Spectrum of Rectified Signal")
+plt.xlabel("Frequency (Hz)")
+plt.ylabel("Amplitude")
+plt.legend()
+
+# Frequency domain (filtered signal)
+plt.subplot(3, 1, 3)
+plt.stem(frequencies_fft[:len(frequencies_fft)//2], np.abs(fft_filtered[:len(fft_filtered)//2]), basefmt=" ", use_line_collection=True, label="FFT of Filtered Signal")
+plt.title("Frequency Spectrum of Filtered Signal")
+plt.xlabel("Frequency (Hz)")
+plt.ylabel("Amplitude")
+plt.legend()
+
+plt.tight_layout()
+plt.show()
